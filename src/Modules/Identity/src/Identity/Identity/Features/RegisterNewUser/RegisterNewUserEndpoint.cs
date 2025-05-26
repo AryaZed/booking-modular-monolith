@@ -1,34 +1,41 @@
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
-using Microsoft.AspNetCore.Authorization;
+using BuildingBlocks.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Identity.Identity.Features.RegisterNewUser;
 
-[Route("identity/register-user")]
-[ApiController]
-public class LoginEndpoint : ControllerBase
+[Route(BaseApiPath + "/identity/register")]
+public class RegisterNewUserEndpoint : BaseController
 {
-    private readonly IMediator _mediator;
-
-    public LoginEndpoint(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
-
-    [Authorize]
+    /// <summary>
+    /// Public endpoint for user self-registration
+    /// This endpoint is intentionally not protected by [Authorize] attribute
+    /// since it's used by unauthenticated users to create accounts
+    /// </summary>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [SwaggerOperation(Summary = "Register new user", Description = "Register new user")]
-    public async Task<ActionResult> RegisterNewUser([FromBody] RegisterNewUserCommand command,
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [EnableRateLimiting("registration")] // Apply rate limiting to prevent abuse
+    [SwaggerOperation(
+        Summary = "Register new user", 
+        Description = "Register a new user in the system (public endpoint)",
+        Tags = new[] { "Identity" })]
+    public async Task<ActionResult> RegisterNewUser(
+        [FromBody] RegisterNewUserCommand command,
         CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command, cancellationToken);
+        // Ensure tenant-related properties are null for public registration
+        command.TenantId = null;
+        command.TenantType = null;
+        command.RoleId = null;
+        
+        var result = await Mediator.Send(command, cancellationToken);
 
-        return Ok(result);
+        return Created($"/api/identity/users/{result.Id}", result);
     }
 }

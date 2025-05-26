@@ -1,63 +1,101 @@
-using System.Linq;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Ardalis.GuardClauses;
-using BuildingBlocks.Contracts.EventBus.Messages;
 using BuildingBlocks.Domain;
-using Identity.Identity.Dtos;
-using Identity.Identity.Exceptions;
+using BuildingBlocks.Identity;
+using FluentValidation;
+using Identity.Data;
+using Identity.Identity.Events;
 using Identity.Identity.Models;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Identity.Features.RegisterNewUser;
 
-public class RegisterNewUserCommandHandler : IRequestHandler<RegisterNewUserCommand, RegisterNewUserResponseDto>
+public class RegisterNewUserCommandHandler : IRequestHandler<RegisterNewUserCommand, RegisterNewUserResponse>
 {
-    private readonly IBusPublisher _busPublisher;
-    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IdentityContext _context;
+    private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
+    private readonly IEventDispatcher _eventDispatcher;
 
-    public RegisterNewUserCommandHandler(UserManager<ApplicationUser> userManager,
-        IBusPublisher busPublisher)
+    public RegisterNewUserCommandHandler(
+        IdentityContext context, 
+        IPasswordHasher<ApplicationUser> passwordHasher,
+        IEventDispatcher eventDispatcher)
     {
-        _userManager = userManager;
-        _busPublisher = busPublisher;
+        _context = context;
+        _passwordHasher = passwordHasher;
+        _eventDispatcher = eventDispatcher;
     }
 
-    public async Task<RegisterNewUserResponseDto> Handle(RegisterNewUserCommand command,
-        CancellationToken cancellationToken)
+    public async Task<RegisterNewUserResponse> Handle(RegisterNewUserCommand command, CancellationToken cancellationToken)
     {
-        Guard.Against.Null(command, nameof(command));
-
-        var applicationUser = new ApplicationUser
+        // Check if user with same email already exists
+        var existingUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == command.Email, cancellationToken);
+            
+        if (existingUser != null)
         {
+            throw new ValidationException("A user with this email already exists");
+        }
+
+        // Create new user
+        var user = new ApplicationUser
+        {
+            Email = command.Email,
             FirstName = command.FirstName,
             LastName = command.LastName,
-            UserName = command.Username,
-            Email = command.Email,
-            PasswordHash = command.Password,
-            PassPortNumber = command.PassportNumber
+            PhoneNumber = command.PhoneNumber,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
         };
 
-        var identityResult = await _userManager.CreateAsync(applicationUser, command.Password);
-        var roleResult = await _userManager.AddToRoleAsync(applicationUser, Constants.Constants.Role.User);
+        // Hash password
+        user.PasswordHash = _passwordHasher.HashPassword(user, command.Password);
 
-        if (identityResult.Succeeded == false)
-            throw new RegisterIdentityUserException(string.Join(',', identityResult.Errors.Select(e => e.Description)));
+        // Add user to database
+        await _context.Users.AddAsync(user, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
 
-        if (roleResult.Succeeded == false)
-            throw new RegisterIdentityUserException(string.Join(',', roleResult.Errors.Select(e => e.Description)));
-
-        await _busPublisher.SendAsync(new UserCreated(applicationUser.Id, applicationUser.FirstName + " " + applicationUser.LastName,
-                applicationUser.PassPortNumber), cancellationToken);
-
-        return new RegisterNewUserResponseDto
+        // If tenant information is provided, assign user to tenant with specified role
+        if (command.TenantId.HasValue && !string.IsNullOrEmpty(command.TenantType) && command.RoleId.HasValue)
         {
-            Id = applicationUser.Id,
-            FirstName = applicationUser.FirstName,
-            LastName = applicationUser.LastName,
-            Username = applicationUser.UserName,
-            PassportNumber = applicationUser.PassPortNumber
+            var role = await _context.Roles.FindAsync(new object[] { command.RoleId.Value }, cancellationToken);
+            if (role != null)
+            {
+                var userTenantRole = new UserTenantRole
+                {
+                    UserId = user.Id,
+                    RoleId = role.Id,
+                    TenantId = command.TenantId.Value,
+                    TenantType = command.TenantType
+                };
+                
+                await _context.UserTenantRoles.AddAsync(userTenantRole, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        // Publish UserCreatedEvent
+        await _eventDispatcher.DispatchAsync(new UserCreatedEvent
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            TenantId = command.TenantId,
+            TenantType = command.TenantType,
+            IsActive = user.IsActive,
+            CreatedAt = user.CreatedAt
+        });
+
+        return new RegisterNewUserResponse
+        {
+            Id = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName
         };
     }
 }

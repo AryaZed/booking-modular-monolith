@@ -2,7 +2,7 @@ using BuildingBlocks.EventStoreDB.Events;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BuildingBlocks.EventStoreDB.Projections;
+namespace BuildingBlocks.EventStoreDB.Projections; 
 
 public class ProjectionPublisher : IProjectionPublisher
 {

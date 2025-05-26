@@ -12,6 +12,13 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using BuildingBlocks.Authorization;
+using BuildingBlocks.CAP;
+using Identity.Data.Seed;
+using Identity.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
+using System;
 
 namespace Identity;
 
@@ -31,6 +38,22 @@ public static class IdentityModule
 
         services.AddCachingRequest(new List<Assembly> {typeof(IdentityRoot).Assembly});
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(EfTxIdentityBehavior<,>));
+
+        services.AddPermissionAuthorization();
+        
+        // Register event dispatching services
+        services.AddScoped<IEventDispatcher, EventDispatcher>();
+
+        services.AddRateLimiter(options =>
+        {
+            options.AddFixedWindowLimiter("registration", opt =>
+            {
+                opt.PermitLimit = 5;
+                opt.Window = TimeSpan.FromMinutes(10);
+                opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+                opt.QueueLimit = 2;
+            });
+        });
 
         return services;
     }

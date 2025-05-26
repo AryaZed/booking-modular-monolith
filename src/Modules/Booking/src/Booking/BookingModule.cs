@@ -1,19 +1,21 @@
 ﻿using System.Reflection;
-using Booking.Configuration;
-using Booking.Data;
+using Booking.Identity.EventHandlers;
+using Booking.Services;
 using BuildingBlocks.Caching;
+using BuildingBlocks.CAP;
 using BuildingBlocks.Domain;
 using BuildingBlocks.EFCore;
 using BuildingBlocks.EventStoreDB;
 using BuildingBlocks.Exception;
 using BuildingBlocks.IdsGenerator;
 using BuildingBlocks.Mapster;
-using BuildingBlocks.Mongo;
+using Booking.Data;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using BuildingBlocks.OpenApi;
 
 namespace Booking;
 
@@ -21,37 +23,34 @@ public static class BookingModule
 {
     public static IServiceCollection AddBookingModules(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddMongoDbContext<BookingReadDbContext>(configuration);
-        services.AddTransient<IEventMapper, EventMapper>();
-        SnowFlakIdGenerator.Configure(3);
-
+        services.AddCustomDbContext<BookingContext>(nameof(Booking), configuration);
+        
+        // Register booking services
+        services.AddScoped<IUserProfileService, UserProfileService>();
+        services.AddScoped<IBookingPermissionService, BookingPermissionService>();
+        
+        // Register CAP event handlers
+        services.AddTransient<UserCreatedEventHandler>();
+        services.AddTransient<UserUpdatedEventHandler>();
+        services.AddTransient<UserDeletedEventHandler>();
+        services.AddTransient<UserRoleChangedEventHandler>();
+        
         services.AddValidatorsFromAssembly(typeof(BookingRoot).Assembly);
         services.AddCustomMapster(typeof(BookingRoot).Assembly);
-
-        // EventStoreDB Configuration
-        services.AddEventStore(configuration, typeof(BookingRoot).Assembly)
-            .AddEventStoreDBSubscriptionToAll();
-
-        services.Configure<GrpcOptions>(options => configuration.GetSection("Grpc").Bind(options));
-
-        services.AddGrpc(options =>
-        {
-            options.Interceptors.Add<GrpcExceptionInterceptor>();
-        });
-
-        services.AddMagicOnion();
-
-        services.AddCachingRequest(new List<Assembly> {typeof(BookingRoot).Assembly});
-
+        
+        services.AddCachingRequest(new[] {typeof(BookingRoot).Assembly});
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(EfTxBookingBehavior<,>));
+        
+        services.AddCustomCap();
+        services.AddTransient<IBusPublisher, BusPublisher>();
+        services.AddAspnetOpenApi();
+        
         return services;
     }
 
     public static IApplicationBuilder UseBookingModules(this IApplicationBuilder app)
     {
-        app.UseEndpoints(endpoints =>
-        {
-            endpoints.MapMagicOnionService();
-        });
+        app.UseMigration<BookingContext>();
         return app;
     }
 }

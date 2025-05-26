@@ -1,6 +1,8 @@
 using BookingMonolith.Identity.Configurations;
 using Identity.Data;
+using Identity.Identity;
 using Identity.Identity.Models;
+using Identity.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +17,7 @@ public static class IdentityServerExtensions
         IWebHostEnvironment env
     )
     {
-        services.AddIdentity<ApplicationUser, IdentityRole<long>>(config =>
+        services.AddIdentity<ApplicationUser, ApplicationRole>(config =>
             {
                 config.Password.RequiredLength = 6;
                 config.Password.RequireDigit = false;
@@ -23,7 +25,8 @@ public static class IdentityServerExtensions
                 config.Password.RequireUppercase = false;
             })
             .AddEntityFrameworkStores<IdentityContext>()
-            .AddDefaultTokenProviders();
+            .AddDefaultTokenProviders()
+            .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
         var identityServerBuilder = services.AddIdentityServer(options =>
                                                                {
@@ -70,6 +73,13 @@ public static class IdentityServerExtensions
                                                     return Task.CompletedTask;
                                                 };
                                             });
+        
+        // Register multi-tenant authorization services
+        services.AddScoped<IPermissionValidator, PermissionValidator>();
+        services.AddScoped<ITenantRoleService, TenantRoleService>();
+        services.AddScoped<IUserTenantService, UserTenantService>();
+        services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
 
         return services;
     }
