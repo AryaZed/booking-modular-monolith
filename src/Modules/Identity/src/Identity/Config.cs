@@ -1,9 +1,10 @@
+using BuildingBlocks.Constants;
 using Duende.IdentityServer;
 using Duende.IdentityServer.Models;
 using Identity.Identity.Constants;
 using IdentityModel;
 
-namespace BookingMonolith.Identity.Configurations;
+namespace Identity;
 
 public static class Config
 {
@@ -15,7 +16,6 @@ public static class Config
             new IdentityResources.Email()
         };
 
-
     public static IEnumerable<ApiScope> ApiScopes =>
         new List<ApiScope>
         {
@@ -23,19 +23,27 @@ public static class Config
             new(Constants.StandardScopes.Booking),
             
             // System-level scopes
-            new("system.admin", "Full system administration"),
-            new("system.support", "System support team access"),
+            new($"{IdentityConstant.TenantType.System.ToLower()}.admin", "Full system administration"),
+            new($"{IdentityConstant.TenantType.System.ToLower()}.support", "System support team access"),
             
             // Brand-level scopes
-            new("brand.admin", "Brand administration"),
-            new("brand.manager", "Brand management"),
+            new($"{IdentityConstant.TenantType.Brand.ToLower()}.admin", $"{IdentityConstant.TenantType.Brand} administration"),
+            new($"{IdentityConstant.TenantType.Brand.ToLower()}.manager", $"{IdentityConstant.TenantType.Brand} management"),
+            new($"{IdentityConstant.TenantType.Brand.ToLower()}.user", $"{IdentityConstant.TenantType.Brand} user access"),
             
             // Branch-level scopes
-            new("branch.admin", "Branch administration"),
-            new("branch.staff", "Branch staff access"),
+            new($"{IdentityConstant.TenantType.Branch.ToLower()}.admin", $"{IdentityConstant.TenantType.Branch} administration"),
+            new($"{IdentityConstant.TenantType.Branch.ToLower()}.manager", $"{IdentityConstant.TenantType.Branch} management"),
+            new($"{IdentityConstant.TenantType.Branch.ToLower()}.cashier", $"{IdentityConstant.TenantType.Branch} cashier access"),
+            new($"{IdentityConstant.TenantType.Branch.ToLower()}.host", $"{IdentityConstant.TenantType.Branch} host access"),
+            new($"{IdentityConstant.TenantType.Branch.ToLower()}.staff", $"{IdentityConstant.TenantType.Branch} general staff access"),
+            
+            // Department-level scopes (if needed)
+            new($"{IdentityConstant.TenantType.Department.ToLower()}.admin", $"{IdentityConstant.TenantType.Department} administration"),
+            new($"{IdentityConstant.TenantType.Department.ToLower()}.manager", $"{IdentityConstant.TenantType.Department} management"),
             
             // Customer-level scopes
-            new("customer", "Customer access"),
+            new($"{IdentityConstant.Role.Customer.ToLower()}", $"{IdentityConstant.Role.Customer} access"),
             
             // Third-party API scopes
             new("api.read", "API read access"),
@@ -45,18 +53,38 @@ public static class Config
             new(JwtClaimTypes.Role, new List<string> {"role"})
         };
 
-
     public static IList<ApiResource> ApiResources =>
         new List<ApiResource>
         {
             new(Constants.StandardScopes.Booking)
             {
-                Scopes = { 
+                Scopes = {
                     Constants.StandardScopes.Booking,
-                    "system.admin", "system.support",
-                    "brand.admin", "brand.manager",
-                    "branch.admin", "branch.staff",
-                    "customer",
+                    
+                    // System-level scopes
+                    $"{IdentityConstant.TenantType.System.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.System.ToLower()}.support",
+                    
+                    // Brand-level scopes
+                    $"{IdentityConstant.TenantType.Brand.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.Brand.ToLower()}.manager",
+                    $"{IdentityConstant.TenantType.Brand.ToLower()}.user",
+                    
+                    // Branch-level scopes
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.manager",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.cashier",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.host",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.staff",
+                    
+                    // Department-level scopes
+                    $"{IdentityConstant.TenantType.Department.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.Department.ToLower()}.manager",
+                    
+                    // Customer-level scopes
+                    IdentityConstant.Role.Customer.ToLower(),
+                    
+                    // API scopes
                     "api.read", "api.write"
                 }
             },
@@ -66,103 +94,162 @@ public static class Config
         new List<Client>
         {
             // System Admin Client
-            new()
-            {
-                ClientId = "system_admin_client",
-                AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
-                ClientSecrets = { new Secret("admin_secret".Sha256()) },
-                AllowedScopes =
+            CreateClient(
+                "system_admin_client",
+                "admin_secret",
+                new[]
                 {
-                    IdentityServerConstants.StandardScopes.OpenId,
-                    IdentityServerConstants.StandardScopes.Profile,
-                    JwtClaimTypes.Role,
-                    Constants.StandardScopes.Booking,
-                    "system.admin", "brand.admin", "branch.admin", "customer",
+                    $"{IdentityConstant.TenantType.System.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.Brand.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.Brand.ToLower()}.manager",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.manager",
+                    $"{IdentityConstant.TenantType.Department.ToLower()}.admin",
+                    IdentityConstant.Role.Customer.ToLower(),
                     "api.read", "api.write"
-                },
-                AccessTokenLifetime = 3600,
-                IdentityTokenLifetime = 3600,
-                AlwaysIncludeUserClaimsInIdToken = true
-            },
+                }),
+                
+            // System Support Client
+            CreateClient(
+                "system_support_client",
+                "support_secret",
+                new[]
+                {
+                    $"{IdentityConstant.TenantType.System.ToLower()}.support",
+                    "api.read"
+                }),
             
             // Brand Admin Client
-            new()
-            {
-                ClientId = "brand_admin_client",
-                AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
-                ClientSecrets = { new Secret("brand_secret".Sha256()) },
-                AllowedScopes =
+            CreateClient(
+                "brand_admin_client",
+                "brand_secret",
+                new[]
                 {
-                    IdentityServerConstants.StandardScopes.OpenId,
-                    IdentityServerConstants.StandardScopes.Profile,
-                    JwtClaimTypes.Role,
-                    Constants.StandardScopes.Booking,
-                    "brand.admin", "branch.admin", "customer",
+                    $"{IdentityConstant.TenantType.Brand.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.manager",
+                    $"{IdentityConstant.TenantType.Department.ToLower()}.admin",
+                    IdentityConstant.Role.Customer.ToLower(),
                     "api.read"
-                },
-                AccessTokenLifetime = 3600,
-                IdentityTokenLifetime = 3600,
-                AlwaysIncludeUserClaimsInIdToken = true
-            },
+                }),
+                
+            // Brand Manager Client
+            CreateClient(
+                "brand_manager_client",
+                "brand_mgr_secret",
+                new[]
+                {
+                    $"{IdentityConstant.TenantType.Brand.ToLower()}.manager",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.manager",
+                    "api.read"
+                }),
+                
+            // Brand User Client
+            CreateClient(
+                "brand_user_client",
+                "brand_user_secret",
+                new[]
+                {
+                    $"{IdentityConstant.TenantType.Brand.ToLower()}.user",
+                    "api.read"
+                }),
             
             // Branch Admin Client
-            new()
-            {
-                ClientId = "branch_admin_client",
-                AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
-                ClientSecrets = { new Secret("branch_secret".Sha256()) },
-                AllowedScopes =
+            CreateClient(
+                "branch_admin_client",
+                "branch_secret",
+                new[]
                 {
-                    IdentityServerConstants.StandardScopes.OpenId,
-                    IdentityServerConstants.StandardScopes.Profile,
-                    JwtClaimTypes.Role,
-                    Constants.StandardScopes.Booking,
-                    "branch.admin", "customer",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.admin",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.manager",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.cashier",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.host",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.staff",
+                    $"{IdentityConstant.TenantType.Department.ToLower()}.admin",
+                    IdentityConstant.Role.Customer.ToLower(),
                     "api.read"
-                },
-                AccessTokenLifetime = 3600,
-                IdentityTokenLifetime = 3600,
-                AlwaysIncludeUserClaimsInIdToken = true
-            },
+                }),
+                
+            // Branch Manager Client
+            CreateClient(
+                "branch_manager_client",
+                "branch_mgr_secret",
+                new[]
+                {
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.manager",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.cashier",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.host",
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.staff",
+                    "api.read"
+                }),
+                
+            // Branch Cashier Client
+            CreateClient(
+                "branch_cashier_client",
+                "cashier_secret",
+                new[]
+                {
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.cashier",
+                    "api.read"
+                }),
+                
+            // Branch Host Client
+            CreateClient(
+                "branch_host_client",
+                "host_secret",
+                new[]
+                {
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.host",
+                    "api.read"
+                }),
+                
+            // Branch Staff Client
+            CreateClient(
+                "branch_staff_client",
+                "staff_secret",
+                new[]
+                {
+                    $"{IdentityConstant.TenantType.Branch.ToLower()}.staff",
+                    "api.read"
+                }),
             
             // Customer Client
-            new()
-            {
-                ClientId = "customer_client",
-                AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
-                ClientSecrets = { new Secret("customer_secret".Sha256()) },
-                AllowedScopes =
+            CreateClient(
+                "customer_client",
+                "customer_secret",
+                new[]
                 {
-                    IdentityServerConstants.StandardScopes.OpenId,
-                    IdentityServerConstants.StandardScopes.Profile,
-                    JwtClaimTypes.Role,
-                    Constants.StandardScopes.Booking,
-                    "customer"
-                },
-                AccessTokenLifetime = 3600,
-                IdentityTokenLifetime = 3600,
-                AlwaysIncludeUserClaimsInIdToken = true
-            },
+                    IdentityConstant.Role.Customer.ToLower()
+                }),
             
             // Original client (keep for backward compatibility)
-            new()
-            {
-                ClientId = "client",
-                AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
-                ClientSecrets =
-                {
-                    new Secret("secret".Sha256())
-                },
-                AllowedScopes =
-                {
-                    IdentityServerConstants.StandardScopes.OpenId,
-                    IdentityServerConstants.StandardScopes.Profile,
-                    JwtClaimTypes.Role,
-                    Constants.StandardScopes.Booking,
-                },
-                AccessTokenLifetime = 3600,
-                IdentityTokenLifetime = 3600,
-                AlwaysIncludeUserClaimsInIdToken = true
-            }
+            CreateClient(
+                "client",
+                "secret",
+                new string[] { })
         };
+
+    private static Client CreateClient(string clientId, string secret, string[] additionalScopes)
+    {
+        var baseScopes = new[]
+        {
+            IdentityServerConstants.StandardScopes.OpenId,
+            IdentityServerConstants.StandardScopes.Profile,
+            JwtClaimTypes.Role,
+            Constants.StandardScopes.Booking
+        };
+        
+        var allScopes = baseScopes.Concat(additionalScopes).ToArray();
+        
+        return new Client
+        {
+            ClientId = clientId,
+            AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
+            ClientSecrets = { new Secret(secret.Sha256()) },
+            AllowedScopes = allScopes,
+            AccessTokenLifetime = 3600,
+            IdentityTokenLifetime = 3600,
+            AlwaysIncludeUserClaimsInIdToken = true
+        };
+    }
 }

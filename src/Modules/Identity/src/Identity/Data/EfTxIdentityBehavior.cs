@@ -1,10 +1,6 @@
-﻿using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using BuildingBlocks.Domain;
 using MediatR;
-using Microsoft.Extensions.Logging;
 
 namespace Identity.Data;
 

@@ -14,12 +14,12 @@ public class UserTenantRole : IAuditableEntity
     public long? CreatedBy { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
     public long? LastModifiedBy { get; private set; }
-    
+
     // Navigation properties
     public virtual ApplicationUser User { get; private set; }
     public virtual ApplicationRole Role { get; private set; }
     public virtual Tenant Tenant { get; private set; }
-    
+
     // Domain methods
     public void Activate(long modifiedBy)
     {
@@ -27,14 +27,14 @@ public class UserTenantRole : IAuditableEntity
         LastModifiedAt = DateTime.UtcNow;
         LastModifiedBy = modifiedBy;
     }
-    
+
     public void Deactivate(long modifiedBy)
     {
         IsActive = false;
         LastModifiedAt = DateTime.UtcNow;
         LastModifiedBy = modifiedBy;
     }
-    
+
     // Factory method
     public static UserTenantRole Create(long userId, long tenantId, long roleId, long createdBy)
     {
@@ -54,4 +54,4 @@ public enum TenantType
 {
     Brand,
     Branch
-} 
+}

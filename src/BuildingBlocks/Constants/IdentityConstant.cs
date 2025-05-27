@@ -23,6 +23,10 @@ public static class IdentityConstant
         public const string System = "System";
         public const string Brand = "Brand";
         public const string Branch = "Branch";
+        public const string Department = "Department";
+        public const string Team = "Team";
+        public const string Project = "Project";
+        public const string Custom = "Custom";
     }
     
     /// <summary>

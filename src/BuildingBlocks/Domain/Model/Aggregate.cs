@@ -1,4 +1,4 @@
-﻿using BuildingBlocks.Domain.Event;
+using BuildingBlocks.Domain.Event;
 
 namespace BuildingBlocks.Domain.Model
 {

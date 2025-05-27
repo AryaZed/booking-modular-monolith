@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using BuildingBlocks.Constants;
+using System.Threading.Tasks;
 
 namespace Identity.Extensions;
 
@@ -73,13 +75,17 @@ public static class IdentityServerExtensions
                                                     return Task.CompletedTask;
                                                 };
                                             });
-        
+
         // Register multi-tenant authorization services
         services.AddScoped<IPermissionValidator, PermissionValidator>();
         services.AddScoped<ITenantRoleService, TenantRoleService>();
         services.AddScoped<IUserTenantService, UserTenantService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
+        
+        // Register OTP services
+        services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IOtpNotificationService, DefaultOtpNotificationService>();
 
         return services;
     }
