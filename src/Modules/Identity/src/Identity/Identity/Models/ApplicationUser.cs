@@ -41,6 +41,47 @@ public class ApplicationUser : IdentityUser<long>, IAuditableEntity, ISoftDeleta
         LastName = lastName;
         LastModifiedAt = DateTime.UtcNow;
     }
+    
+    // Comprehensive update method
+    public void UpdateInfo(string firstName, string lastName, string email, string phoneNumber, bool isActive, long? modifiedBy = null)
+    {
+        if (string.IsNullOrWhiteSpace(firstName))
+            throw new DomainValidationException("First name cannot be empty");
+
+        if (string.IsNullOrWhiteSpace(lastName))
+            throw new DomainValidationException("Last name cannot be empty");
+            
+        if (string.IsNullOrWhiteSpace(email))
+            throw new DomainValidationException("Email cannot be empty");
+
+        FirstName = firstName;
+        LastName = lastName;
+        Email = email;
+        NormalizedEmail = email.ToUpperInvariant();
+        
+        if (phoneNumber != null)
+        {
+            PhoneNumber = phoneNumber;
+        }
+        
+        // Handle activation/deactivation
+        if (isActive != IsActive)
+        {
+            if (isActive)
+            {
+                IsActive = true;
+                _domainEvents.Add(new UserStatusChangedEvent(Id, UserStatusChangeType.Activated, modifiedBy ?? 0));
+            }
+            else
+            {
+                IsActive = false;
+                _domainEvents.Add(new UserStatusChangedEvent(Id, UserStatusChangeType.Deactivated, modifiedBy ?? 0));
+            }
+        }
+        
+        LastModifiedAt = DateTime.UtcNow;
+        LastModifiedBy = modifiedBy;
+    }
 
     public void SetPassportNumber(string passportNumber)
     {
@@ -83,6 +124,18 @@ public class ApplicationUser : IdentityUser<long>, IAuditableEntity, ISoftDeleta
         DeletedBy = deletedBy;
 
         _domainEvents.Add(new UserStatusChangedEvent(Id, UserStatusChangeType.Deleted, deletedBy));
+    }
+
+    public void AddTenantRole(UserTenantRole tenantRole)
+    {
+        if (tenantRole == null)
+            throw new DomainValidationException("Tenant role cannot be null");
+
+        if (TenantRoles.Any(tr => tr.TenantId == tenantRole.TenantId && tr.RoleId == tenantRole.RoleId))
+            throw new DomainValidationException("User already has this role in the specified tenant");
+
+        TenantRoles.Add(tenantRole);
+        LastModifiedAt = DateTime.UtcNow;
     }
 
     // Factory method for creating users

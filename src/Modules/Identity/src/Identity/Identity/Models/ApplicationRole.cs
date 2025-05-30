@@ -14,7 +14,7 @@ public class ApplicationRole : IdentityRole<long>, IAuditableEntity, ISoftDeleta
 
     public long? TenantId { get; private set; } // Brand/Partner ID
     public bool IsCustom { get; set; } // Whether this is a custom role created by a B2B partner
-    public string Description { get; private set; }
+    public string? Description { get; private set; }
     public bool IsDefault { get; private set; }
     public bool IsActive { get; private set; } = true;
 

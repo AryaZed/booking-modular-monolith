@@ -78,7 +78,9 @@ public static class IdentityServerExtensions
                                             });
 
         // Register multi-tenant authorization services
-        services.AddScoped<IPermissionValidator, PermissionValidator>();
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<ITenantPermissionService, TenantPermissionService>();
+        services.AddScoped<IPermissionValidator, PermissionValidatorAdapter>();
         services.AddScoped<ITenantRoleService, TenantRoleService>();
         services.AddScoped<IUserTenantService, UserTenantService>();
         services.AddScoped<ITokenService, TokenService>();

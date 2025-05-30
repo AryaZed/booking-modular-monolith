@@ -9,6 +9,7 @@ using Identity.Identity.Models;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using BuildingBlocks.Exception;
 
 namespace Identity.Identity.Features.Users.AssignRole;
 
@@ -56,7 +57,7 @@ public class AssignRoleCommandHandler : ICommandHandler<AssignRoleCommand, bool>
             throw new NotFoundException($"Role '{request.RoleName}' not found");
 
         var result = await _userManager.AddToRoleAsync(user, request.RoleName);
-        
+
         if (!result.Succeeded)
             throw new InvalidOperationException($"Failed to assign role: {string.Join(", ", result.Errors)}");
 
@@ -68,17 +69,17 @@ public class AssignRoleCommandHandler : ICommandHandler<AssignRoleCommand, bool>
                 throw new NotFoundException($"Tenant with ID {request.TenantId} not found");
 
             var role = await _roleManager.FindByNameAsync(request.RoleName);
-            
+
             var userTenantRole = UserTenantRole.Create(
                 user.Id,
                 tenant.Id,
                 role.Id,
                 1); // TODO: Get actual current user ID
-            
+
             _context.UserTenantRoles.Add(userTenantRole);
             await _context.SaveChangesAsync(cancellationToken);
         }
 
         return true;
     }
-} 
+}

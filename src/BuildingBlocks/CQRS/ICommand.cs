@@ -5,7 +5,7 @@ namespace BuildingBlocks.CQRS;
 /// <summary>
 /// Marker interface for commands that don't return a value
 /// </summary>
-public interface ICommand : IRequest
+public interface ICommand : IRequest<Unit>
 {
 }
 

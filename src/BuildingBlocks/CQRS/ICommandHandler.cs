@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 
 namespace BuildingBlocks.CQRS;
@@ -6,7 +8,7 @@ namespace BuildingBlocks.CQRS;
 /// Handler for commands that don't return a value
 /// </summary>
 /// <typeparam name="TCommand">The type of command to handle</typeparam>
-public interface ICommandHandler<in TCommand> : IRequestHandler<TCommand> 
+public interface ICommandHandler<in TCommand> : IRequestHandler<TCommand>
     where TCommand : ICommand
 {
 }
@@ -19,4 +21,4 @@ public interface ICommandHandler<in TCommand> : IRequestHandler<TCommand>
 public interface ICommandHandler<in TCommand, TResult> : IRequestHandler<TCommand, TResult>
     where TCommand : ICommand<TResult>
 {
-} 
+}

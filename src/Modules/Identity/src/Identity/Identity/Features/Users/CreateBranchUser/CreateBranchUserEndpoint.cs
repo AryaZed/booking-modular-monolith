@@ -48,18 +48,18 @@ public class CreateBranchUserEndpoint : BaseController
         {
             return Unauthorized();
         }
-        
+
         // Validate the user can manage branch users
         if (!User.CanManageBranchUsers())
         {
             return Forbid("You don't have permission to manage branch users");
         }
-        
+
         // Verify the user has access to this branch
         var userTenantId = User.GetTenantId();
         var userTenantType = User.GetTenantType();
         bool hasAccess = false;
-        
+
         // System admins have access to all branches
         if (User.IsSystemAdmin())
         {
@@ -74,15 +74,15 @@ public class CreateBranchUserEndpoint : BaseController
         else if (userTenantType == IdentityConstant.TenantType.Brand)
         {
             // Check if branch belongs to the user's brand
-            var branch = await _context.Branches
-                .FirstOrDefaultAsync(b => b.Id == branchId, cancellationToken);
-                
-            if (branch != null && branch.BrandId == userTenantId)
+            var branch = await _context.Tenants
+                .FirstOrDefaultAsync(b => b.Id == branchId && b.Type == TenantType.Branch, cancellationToken);
+
+            if (branch != null && branch.ParentTenantId == userTenantId)
             {
                 hasAccess = true;
             }
         }
-        
+
         if (!hasAccess)
         {
             return Forbid("You don't have permission to create users for this branch");
@@ -90,11 +90,11 @@ public class CreateBranchUserEndpoint : BaseController
 
         // Set branch-specific properties
         command.TenantId = branchId;
-        command.TenantType = IdentityConstant.TenantType.Branch;
-        
+        command.TenantType = TenantType.Branch;
+
         // We reuse RegisterNewUserCommand but process it through the same handler
         var result = await Mediator.Send(command, cancellationToken);
 
         return Created($"/api/identity/users/{result.Id}", result);
     }
-} 
+}

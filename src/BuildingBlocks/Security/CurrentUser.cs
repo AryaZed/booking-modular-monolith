@@ -21,23 +21,23 @@ public class CurrentUser : ICurrentUser
     }
 
     public long? Id => IsAuthenticated ? Convert.ToInt64(GetClaimValue(ClaimTypes.NameIdentifier)) : null;
-    
+
     public string Username => GetClaimValue(ClaimTypes.Name);
-    
+
     public string Email => GetClaimValue(ClaimTypes.Email);
-    
+
     public string FirstName => GetClaimValue(ClaimTypes.GivenName);
-    
+
     public string LastName => GetClaimValue(ClaimTypes.Surname);
-    
+
     public IReadOnlyList<string> Roles => GetClaimValues(ClaimTypes.Role);
-    
+
     public IReadOnlyList<string> Permissions => GetClaimValues(IdentityConstant.ClaimTypes.Permission);
-    
-    public long? TenantId => string.IsNullOrEmpty(GetClaimValue(IdentityConstant.ClaimTypes.TenantId)) 
-        ? null 
+
+    public long? TenantId => string.IsNullOrEmpty(GetClaimValue(IdentityConstant.ClaimTypes.TenantId))
+        ? null
         : Convert.ToInt64(GetClaimValue(IdentityConstant.ClaimTypes.TenantId));
-    
+
     public bool IsAuthenticated => _user?.Identity?.IsAuthenticated ?? false;
 
     public bool HasPermission(string permission)
@@ -49,12 +49,12 @@ public class CurrentUser : ICurrentUser
     {
         return Roles.Contains(role);
     }
-    
+
     private string GetClaimValue(string claimType)
     {
         return _user?.FindFirst(claimType)?.Value;
     }
-    
+
     private List<string> GetClaimValues(string claimType)
     {
         return _user?.Claims
@@ -62,4 +62,4 @@ public class CurrentUser : ICurrentUser
             .Select(c => c.Value)
             .ToList() ?? new List<string>();
     }
-} 
+}

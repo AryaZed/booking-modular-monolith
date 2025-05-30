@@ -22,6 +22,14 @@ public class UserValidator : IResourceOwnerPasswordValidator
     public async Task ValidateAsync(ResourceOwnerPasswordValidationContext context)
     {
         var user = await _userManager.FindByNameAsync(context.UserName);
+        
+        if (user == null)
+        {
+            // User not found
+            context.Result = new GrantValidationResult(
+                TokenRequestErrors.InvalidGrant, "Invalid username or password");
+            return;
+        }
 
         var signIn = await _signInManager.PasswordSignInAsync(
             user,
@@ -31,7 +39,7 @@ public class UserValidator : IResourceOwnerPasswordValidator
 
         if (signIn.Succeeded)
         {
-            var userId = user!.Id.ToString();
+            var userId = user.Id.ToString();
 
             // context set to success
             context.Result = new GrantValidationResult(

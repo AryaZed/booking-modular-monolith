@@ -22,6 +22,8 @@ using System;
 using BuildingBlocks.Security;
 using BuildingBlocks.Email;
 using BuildingBlocks.CQRS;
+using Identity.Identity.Repositories;
+using Identity.Identity.Services;
 
 namespace Identity;
 
@@ -32,6 +34,13 @@ public static class IdentityModule
     {
         services.AddCustomDbContext<IdentityContext>(nameof(Identity), configuration);
         services.AddScoped<IDataSeeder, IdentityDataSeeder>();
+
+        // Register repositories
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
+
+        // Register services
+        services.AddScoped<UserService>();
 
         services.AddTransient<IEventMapper, EventMapper>();
         services.AddIdentityServer(env);

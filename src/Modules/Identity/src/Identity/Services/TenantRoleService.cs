@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BuildingBlocks.Security;
 using Identity.Data;
 using Identity.Identity.Models;
 using Microsoft.AspNetCore.Identity;
@@ -49,14 +50,16 @@ public class TenantRoleService : ITenantRoleService
         }
 
         // Create the role with tenant prefix to ensure uniqueness
-        var role = new ApplicationRole
-        {
-            Name = $"{tenantId}_{roleName}",
-            TenantId = tenantId,
-            IsCustom = true,
-            Description = description,
-            CreatedById = createdById
-        };
+        var role = ApplicationRole.Create(
+            name: $"{tenantId}_{roleName}",
+            description: description,
+            isDefault: false,
+            tenantId: tenantId,
+            createdBy: createdById
+        );
+        
+        // Set custom flag (not in factory method)
+        role.IsCustom = true;
 
         var result = await _roleManager.CreateAsync(role);
         if (!result.Succeeded)
@@ -67,12 +70,13 @@ public class TenantRoleService : ITenantRoleService
         // Assign permissions to the role
         foreach (var permission in permissions)
         {
-            await _context.RolePermissions.AddAsync(new RolePermission
-            {
-                RoleId = role.Id,
-                Permission = permission,
-                CreatedById = createdById
-            });
+            await _context.RolePermissions.AddAsync(
+                RolePermission.Create(
+                    roleId: role.Id,
+                    permission: permission,
+                    createdBy: createdById
+                )
+            );
         }
 
         await _context.SaveChangesAsync();
@@ -108,7 +112,7 @@ public class TenantRoleService : ITenantRoleService
         }
 
         // Update role properties
-        role.Description = description;
+        role.UpdateDescription(description, updatedById);
 
         var result = await _roleManager.UpdateAsync(role);
         if (!result.Succeeded)
@@ -127,12 +131,11 @@ public class TenantRoleService : ITenantRoleService
         // Then add the new permissions
         foreach (var permission in permissions)
         {
-            await _context.RolePermissions.AddAsync(new RolePermission
-            {
-                RoleId = role.Id,
-                Permission = permission,
-                CreatedById = updatedById
-            });
+            await _context.RolePermissions.AddAsync(RolePermission.Create(
+                    role.Id,
+                    permission,
+                    updatedById
+                ));
         }
 
         await _context.SaveChangesAsync();

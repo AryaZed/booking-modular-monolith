@@ -10,13 +10,13 @@ namespace Identity.Data.Seed;
 
 public class IdentityDataSeeder : IDataSeeder
 {
-    private readonly RoleManager<IdentityRole<long>> _roleManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly IdentityContext _identityContext;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public IdentityDataSeeder(
         UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole<long>> roleManager,
+        RoleManager<ApplicationRole> roleManager,
         IdentityContext identityContext
     )
     {
@@ -40,13 +40,21 @@ public class IdentityDataSeeder : IDataSeeder
         {
             if (await _roleManager.RoleExistsAsync(Constants.Role.Admin) == false)
             {
-                await _roleManager.CreateAsync(new IdentityRole<long>(Constants.Role.Admin));
+                await _roleManager.CreateAsync(ApplicationRole.Create(
+                    name: Constants.Role.Admin,
+                    description: "Administrator role with full permissions",
+                    isDefault: true
+                ));
                 await _identityContext.SaveChangesAsync();
             }
 
             if (await _roleManager.RoleExistsAsync(Constants.Role.User) == false)
             {
-                await _roleManager.CreateAsync(new IdentityRole<long>(Constants.Role.User));
+                await _roleManager.CreateAsync(ApplicationRole.Create(
+                    name: Constants.Role.User,
+                    description: "Regular user role with limited permissions",
+                    isDefault: true
+                ));
                 await _identityContext.SaveChangesAsync();
             }
         }
