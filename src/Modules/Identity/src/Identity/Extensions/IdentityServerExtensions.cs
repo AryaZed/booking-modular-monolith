@@ -1,4 +1,4 @@
-using BookingMonolith.Identity.Configurations;
+using Identity;
 using Identity.Data;
 using Identity.Identity;
 using Identity.Identity.Models;
@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using BuildingBlocks.Constants;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 
 namespace Identity.Extensions;
 
@@ -16,7 +17,7 @@ public static class IdentityServerExtensions
 {
     public static IServiceCollection AddIdentityServer(
         this IServiceCollection services,
-        IWebHostEnvironment env
+        IWebHostEnvironment env = null
     )
     {
         services.AddIdentity<ApplicationUser, ApplicationRole>(config =>
@@ -52,7 +53,7 @@ public static class IdentityServerExtensions
             .AddAspNetIdentity<ApplicationUser>()
             .AddResourceOwnerValidator<UserValidator>();
 
-        if (env.IsDevelopment())
+        if (env?.IsDevelopment() == true)
         {
             identityServerBuilder.AddDeveloperSigningCredential();
         }
@@ -82,6 +83,9 @@ public static class IdentityServerExtensions
         services.AddScoped<IUserTenantService, UserTenantService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
+        
+        // Register email services
+        services.AddScoped<IEmailService, EmailService>();
         
         // Register OTP services
         services.AddScoped<IOtpService, OtpService>();

@@ -1,19 +1,23 @@
 using System;
-using BuildingBlocks.Domain;
+using BuildingBlocks.Domain.Event;
 
 namespace Identity.Identity.Events;
 
 /// <summary>
 /// Event published when a new user is created
 /// </summary>
-public record UserCreatedEvent : IDomainEvent
+public class UserCreatedEvent : IDomainEvent
 {
-    public long UserId { get; init; }
-    public string Email { get; init; }
-    public string FirstName { get; init; }
-    public string LastName { get; init; }
-    public long? TenantId { get; init; }
-    public string TenantType { get; init; }
-    public bool IsActive { get; init; }
-    public DateTime CreatedAt { get; init; }
+    public long UserId { get; }
+    public string Email { get; }
+    public string Username { get; }
+    public DateTime CreatedAt { get; }
+    
+    public UserCreatedEvent(long userId, string email, string username)
+    {
+        UserId = userId;
+        Email = email;
+        Username = username;
+        CreatedAt = DateTime.UtcNow;
+    }
 } 

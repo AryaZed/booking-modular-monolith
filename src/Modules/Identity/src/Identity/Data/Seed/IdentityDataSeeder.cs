@@ -3,8 +3,10 @@ using Identity.Identity.Constants;
 using Identity.Identity.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Threading.Tasks;
 
-namespace Identity.Data;
+namespace Identity.Data.Seed;
 
 public class IdentityDataSeeder : IDataSeeder
 {
@@ -56,15 +58,16 @@ public class IdentityDataSeeder : IDataSeeder
         {
             if (await _userManager.FindByNameAsync("meysamh") == null)
             {
-                var user = new ApplicationUser
-                           {
-                               FirstName = "Meysam",
-                               LastName = "Hadeli",
-                               UserName = "meysamh",
-                               Email = "meysam@test.com",
-                               SecurityStamp = Guid.NewGuid().ToString(),
-                               PassPortNumber = String.Empty
-                           };
+                var user = ApplicationUser.Create(
+                    email: "meysam@test.com",
+                    firstName: "Meysam",
+                    lastName: "Hadeli"
+                );
+                
+                user.SecurityStamp = Guid.NewGuid().ToString();
+                user.UserName = "meysamh";
+                
+                user.SetPassportNumber(string.Empty);
 
                 var result = await _userManager.CreateAsync(user, "Admin@123456");
 
@@ -75,15 +78,16 @@ public class IdentityDataSeeder : IDataSeeder
 
             if (await _userManager.FindByNameAsync("meysamh2") == null)
             {
-                var user = new ApplicationUser
-                           {
-                               FirstName = "Meysam",
-                               LastName = "Hadeli",
-                               UserName = "meysamh2",
-                               Email = "meysam2@test.com",
-                               SecurityStamp = Guid.NewGuid().ToString(),
-                               PassPortNumber = String.Empty
-                           };
+                var user = ApplicationUser.Create(
+                    email: "meysam2@test.com",
+                    firstName: "Meysam",
+                    lastName: "Hadeli"
+                );
+                
+                user.SecurityStamp = Guid.NewGuid().ToString();
+                user.UserName = "meysamh2";
+                
+                user.SetPassportNumber(string.Empty);
 
                 var result = await _userManager.CreateAsync(user, "User@123456");
 

@@ -2,13 +2,13 @@ using System;
 
 namespace BuildingBlocks.Domain.Model
 {
-    public class DomainValidationException : Exception
+    public class DomainValidationException : System.Exception
     {
         public DomainValidationException(string message) : base(message)
         {
         }
         
-        public DomainValidationException(string message, Exception innerException) : base(message, innerException)
+        public DomainValidationException(string message, System.Exception innerException) : base(message, innerException)
         {
         }
     }

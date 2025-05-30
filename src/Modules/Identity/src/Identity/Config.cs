@@ -238,9 +238,9 @@ public static class Config
             JwtClaimTypes.Role,
             Constants.StandardScopes.Booking
         };
-        
+
         var allScopes = baseScopes.Concat(additionalScopes).ToArray();
-        
+
         return new Client
         {
             ClientId = clientId,

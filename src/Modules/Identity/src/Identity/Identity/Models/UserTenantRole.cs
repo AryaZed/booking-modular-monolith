@@ -49,9 +49,3 @@ public class UserTenantRole : IAuditableEntity
         };
     }
 }
-
-public enum TenantType
-{
-    Brand,
-    Branch
-}

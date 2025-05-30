@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using BuildingBlocks.Contracts.Identity;
 using BuildingBlocks.Domain;
+using BuildingBlocks.Domain.Event;
 using DotNetCore.CAP;
 using Mapster;
 
@@ -27,10 +28,10 @@ public class EventDispatcher : IEventDispatcher
     {
         // Get the event type name
         var eventTypeName = @event.GetType().Name;
-        
+
         // Map domain event to integration event
         var integrationEvent = MapToIntegrationEvent(@event);
-        
+
         // If mapping exists, publish the integration event
         if (integrationEvent != null)
         {
@@ -43,7 +44,7 @@ public class EventDispatcher : IEventDispatcher
             await _capPublisher.PublishAsync(eventTypeName, @event);
         }
     }
-    
+
     /// <summary>
     /// Maps a domain event to an integration event
     /// </summary>
@@ -51,7 +52,7 @@ public class EventDispatcher : IEventDispatcher
     {
         var eventType = @event.GetType();
         var eventTypeName = eventType.Name;
-        
+
         // Map to appropriate integration event based on event type
         return eventTypeName switch
         {
@@ -62,4 +63,4 @@ public class EventDispatcher : IEventDispatcher
             _ => null // Return null for unknown event types
         };
     }
-} 
+}

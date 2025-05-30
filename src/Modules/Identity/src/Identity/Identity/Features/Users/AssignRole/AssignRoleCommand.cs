@@ -1,115 +1,84 @@
 using System.Threading;
 using System.Threading.Tasks;
+using BuildingBlocks.CQRS;
 using BuildingBlocks.Constants;
 using BuildingBlocks.Domain;
 using FluentValidation;
 using Identity.Data;
 using Identity.Identity.Models;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Identity.Features.Users.AssignRole;
 
-public record AssignRoleCommand : ICommand<AssignRoleResponse>
+public class AssignRoleCommand : ICommand<bool>
 {
-    public long UserId { get; init; }
-    public long RoleId { get; init; }
-    public long TenantId { get; init; }
-    public string TenantType { get; init; }
-}
+    public long UserId { get; set; }
+    public string RoleName { get; set; }
+    public long? TenantId { get; set; }
 
-public record AssignRoleResponse
-{
-    public long UserId { get; init; }
-    public long RoleId { get; init; }
-    public long TenantId { get; init; }
-    public string TenantType { get; init; }
-    public string RoleName { get; init; }
-}
-
-public class AssignRoleCommandValidator : AbstractValidator<AssignRoleCommand>
-{
-    public AssignRoleCommandValidator(IdentityContext dbContext)
+    // Validator
+    public class Validator : AbstractValidator<AssignRoleCommand>
     {
-        RuleFor(x => x.UserId)
-            .GreaterThan(0)
-            .MustAsync(async (id, ct) => await dbContext.Users.AnyAsync(u => u.Id == id, ct))
-            .WithMessage("User not found");
-
-        RuleFor(x => x.RoleId)
-            .GreaterThan(0)
-            .MustAsync(async (id, ct) => await dbContext.Roles.AnyAsync(r => r.Id == id, ct))
-            .WithMessage("Role not found");
-
-        RuleFor(x => x.TenantId)
-            .GreaterThan(0)
-            .WithMessage("Invalid tenant ID");
-
-        RuleFor(x => x.TenantType)
-            .NotEmpty()
-            .Must(type => 
-                type == IdentityConstant.TenantType.System || 
-                type == IdentityConstant.TenantType.Brand || 
-                type == IdentityConstant.TenantType.Branch)
-            .WithMessage("Invalid tenant type. Must be System, Brand, or Branch");
-
-        // Validate that the combination does not already exist
-        RuleFor(x => x)
-            .MustAsync(async (cmd, ct) => !await dbContext.UserTenantRoles.AnyAsync(
-                u => u.UserId == cmd.UserId && 
-                     u.RoleId == cmd.RoleId && 
-                     u.TenantId == cmd.TenantId && 
-                     u.TenantType == cmd.TenantType, ct))
-            .WithMessage("User already has this role in the specified tenant");
+        public Validator()
+        {
+            RuleFor(x => x.UserId).NotEmpty().WithMessage("User ID is required");
+            RuleFor(x => x.RoleName).NotEmpty().WithMessage("Role name is required");
+        }
     }
 }
 
-public class AssignRoleCommandHandler : ICommandHandler<AssignRoleCommand, AssignRoleResponse>
+public class AssignRoleCommandHandler : ICommandHandler<AssignRoleCommand, bool>
 {
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly IdentityContext _context;
 
-    public AssignRoleCommandHandler(IdentityContext context)
+    public AssignRoleCommandHandler(
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager,
+        IdentityContext context)
     {
+        _userManager = userManager;
+        _roleManager = roleManager;
         _context = context;
     }
 
-    public async Task<AssignRoleResponse> Handle(AssignRoleCommand command, CancellationToken cancellationToken)
+    public async Task<bool> Handle(AssignRoleCommand request, CancellationToken cancellationToken)
     {
-        var role = await _context.Roles
-            .FirstOrDefaultAsync(r => r.Id == command.RoleId, cancellationToken);
-            
-        if (role == null)
-        {
-            throw new NotFoundException($"Role with ID {command.RoleId} not found");
-        }
-
-        var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == command.UserId, cancellationToken);
-            
+        var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user == null)
+            throw new NotFoundException("User not found");
+
+        var roleExists = await _roleManager.RoleExistsAsync(request.RoleName);
+        if (!roleExists)
+            throw new NotFoundException($"Role '{request.RoleName}' not found");
+
+        var result = await _userManager.AddToRoleAsync(user, request.RoleName);
+        
+        if (!result.Succeeded)
+            throw new InvalidOperationException($"Failed to assign role: {string.Join(", ", result.Errors)}");
+
+        // If this is a tenant-specific role assignment, create the user-tenant-role record
+        if (request.TenantId.HasValue)
         {
-            throw new NotFoundException($"User with ID {command.UserId} not found");
+            var tenant = await _context.Tenants.FindAsync(request.TenantId.Value);
+            if (tenant == null)
+                throw new NotFoundException($"Tenant with ID {request.TenantId} not found");
+
+            var role = await _roleManager.FindByNameAsync(request.RoleName);
+            
+            var userTenantRole = UserTenantRole.Create(
+                user.Id,
+                tenant.Id,
+                role.Id,
+                1); // TODO: Get actual current user ID
+            
+            _context.UserTenantRoles.Add(userTenantRole);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        // Create new user tenant role
-        var userTenantRole = new UserTenantRole
-        {
-            UserId = command.UserId,
-            RoleId = command.RoleId,
-            TenantId = command.TenantId,
-            TenantType = command.TenantType
-        };
-
-        await _context.UserTenantRoles.AddAsync(userTenantRole, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return new AssignRoleResponse
-        {
-            UserId = command.UserId,
-            RoleId = command.RoleId,
-            TenantId = command.TenantId,
-            TenantType = command.TenantType,
-            RoleName = role.Name
-        };
+        return true;
     }
 } 
