@@ -1,61 +1,64 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using BuildingBlocks.CQRS;
 using BuildingBlocks.Domain;
-using BuildingBlocks.EFCore;
-using BuildingBlocks.Security;
-using Identity.Identity.Exceptions;
-using MediatR;
+using FluentValidation;
+using Identity.Data;
+using Identity.Identity.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Identity.Features.Users.AccountStatus;
 
-public record GetAccountStatusQuery() : IQuery<AccountStatusResponse>;
-
-public record AccountStatusResponse(
-    bool IsLockedOut,
-    DateTimeOffset? LockoutEnd,
-    bool IsTwoFactorEnabled,
-    bool IsEmailConfirmed,
-    int AccessFailedCount,
-    int MaxAllowedAccessFailedCount);
+public class GetAccountStatusQuery : IQuery<AccountStatusResponse>
+{
+    public long UserId { get; set; }
+    
+    public class Validator : AbstractValidator<GetAccountStatusQuery>
+    {
+        public Validator()
+        {
+            RuleFor(x => x.UserId).NotEmpty().WithMessage("User ID is required");
+        }
+    }
+}
 
 public class GetAccountStatusQueryHandler : IQueryHandler<GetAccountStatusQuery, AccountStatusResponse>
 {
-    private readonly UserManager<Models.ApplicationUser> _userManager;
-    private readonly ICurrentUser _currentUser;
-    private readonly ILogger<GetAccountStatusQueryHandler> _logger;
-
-    public GetAccountStatusQueryHandler(
-        UserManager<Models.ApplicationUser> userManager,
-        ICurrentUser currentUser,
-        ILogger<GetAccountStatusQueryHandler> logger)
+    private readonly UserManager<ApplicationUser> _userManager;
+    
+    public GetAccountStatusQueryHandler(UserManager<ApplicationUser> userManager)
     {
         _userManager = userManager;
-        _currentUser = currentUser;
-        _logger = logger;
     }
-
+    
     public async Task<AccountStatusResponse> Handle(GetAccountStatusQuery request, CancellationToken cancellationToken)
     {
-        // Get the current user
-        var userId = _currentUser.GetUserId();
-        var user = await _userManager.FindByIdAsync(userId);
-        
+        var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user == null)
+            throw new NotFoundException("User not found");
+            
+        return new AccountStatusResponse
         {
-            _logger.LogWarning("Get account status attempted for non-existent user ID: {UserId}", userId);
-            throw new IdentityException("User not found");
-        }
-
-        return new AccountStatusResponse(
-            IsLockedOut: await _userManager.IsLockedOutAsync(user),
-            LockoutEnd: user.LockoutEnd,
-            IsTwoFactorEnabled: await _userManager.GetTwoFactorEnabledAsync(user),
-            IsEmailConfirmed: await _userManager.IsEmailConfirmedAsync(user),
-            AccessFailedCount: user.AccessFailedCount,
-            MaxAllowedAccessFailedCount: _userManager.Options.Lockout.MaxFailedAccessAttempts
-        );
+            UserId = user.Id,
+            Email = user.Email,
+            IsActive = user.IsActive,
+            IsLockedOut = await _userManager.IsLockedOutAsync(user),
+            LockoutEnd = user.LockoutEnd,
+            EmailConfirmed = user.EmailConfirmed,
+            TwoFactorEnabled = user.TwoFactorEnabled
+        };
     }
+}
+
+public class AccountStatusResponse
+{
+    public long UserId { get; set; }
+    public string Email { get; set; }
+    public bool IsActive { get; set; }
+    public bool IsLockedOut { get; set; }
+    public DateTimeOffset? LockoutEnd { get; set; }
+    public bool EmailConfirmed { get; set; }
+    public bool TwoFactorEnabled { get; set; }
 } 

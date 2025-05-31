@@ -14,7 +14,7 @@ public static class IdentityConstant
         public const string BranchAdmin = "branch_admin";
         public const string Customer = "customer";
     }
-    
+
     /// <summary>
     /// Tenant types in the hierarchical structure
     /// </summary>
@@ -28,7 +28,7 @@ public static class IdentityConstant
         public const string Project = "Project";
         public const string Custom = "Custom";
     }
-    
+
     /// <summary>
     /// Custom claim types used in JWT tokens
     /// </summary>
@@ -39,7 +39,7 @@ public static class IdentityConstant
         public const string Permission = "permission";
         public const string UserId = "user_id";
     }
-    
+
     /// <summary>
     /// Authentication-related constants
     /// </summary>
@@ -49,7 +49,7 @@ public static class IdentityConstant
         public const int DefaultExpirationMinutes = 60;
         public const int RefreshTokenExpirationDays = 7;
     }
-    
+
     /// <summary>
     /// Password policy constants
     /// </summary>

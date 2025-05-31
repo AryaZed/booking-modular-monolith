@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BuildingBlocks.Domain;
+using BuildingBlocks.EFCore;
 using MediatR;
 
 namespace Identity.Data;
@@ -9,12 +10,13 @@ public class EfTxIdentityBehavior<TRequest, TResponse> : IPipelineBehavior<TRequ
     where TResponse : notnull
 {
     private readonly ILogger<EfTxIdentityBehavior<TRequest, TResponse>> _logger;
-    private readonly IdentityContext _dbContext;
+    private readonly IDbContext _dbContext;
     private readonly IBusPublisher _busPublisher;
 
     public EfTxIdentityBehavior(
         ILogger<EfTxIdentityBehavior<TRequest, TResponse>> logger,
-        IBusPublisher busPublisher, IdentityContext dbContext)
+        IBusPublisher busPublisher, 
+        IDbContext dbContext)
     {
         _logger = logger;
         _busPublisher = busPublisher;

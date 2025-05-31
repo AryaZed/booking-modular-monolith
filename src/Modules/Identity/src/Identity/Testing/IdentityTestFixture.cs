@@ -46,7 +46,9 @@ public class IdentityTestFixture : IDisposable
         
         // Register services
         services.AddScoped<ITokenService, TokenService>();
-        services.AddScoped<IPermissionValidator, PermissionValidator>();
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<ITenantPermissionService, TenantPermissionService>();
+        services.AddScoped<IPermissionValidator, PermissionValidatorAdapter>();
         services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
         
         // Build service provider

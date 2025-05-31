@@ -3,17 +3,12 @@ using Identity.Identity.Constants;
 using Identity.Identity.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace Identity.Data;
+namespace Identity.Data.Seed;
 
 public class IdentityDataSeeder : IDataSeeder
 {
-    private readonly RoleManager<IdentityRole<long>> _roleManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly IdentityContext _identityContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<IdentityDataSeeder> _logger;
@@ -21,8 +16,7 @@ public class IdentityDataSeeder : IDataSeeder
     public IdentityDataSeeder(
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole<long>> roleManager,
-        IdentityContext identityContext,
-        ILogger<IdentityDataSeeder> logger
+        IdentityContext identityContext
     )
     {
         _userManager = userManager;
@@ -49,13 +43,21 @@ public class IdentityDataSeeder : IDataSeeder
         {
             if (await _roleManager.RoleExistsAsync(Constants.Role.Admin) == false)
             {
-                await _roleManager.CreateAsync(new IdentityRole<long>(Constants.Role.Admin));
+                await _roleManager.CreateAsync(ApplicationRole.Create(
+                    name: Constants.Role.Admin,
+                    description: "Administrator role with full permissions",
+                    isDefault: true
+                ));
                 await _identityContext.SaveChangesAsync();
             }
 
             if (await _roleManager.RoleExistsAsync(Constants.Role.User) == false)
             {
-                await _roleManager.CreateAsync(new IdentityRole<long>(Constants.Role.User));
+                await _roleManager.CreateAsync(ApplicationRole.Create(
+                    name: Constants.Role.User,
+                    description: "Regular user role with limited permissions",
+                    isDefault: true
+                ));
                 await _identityContext.SaveChangesAsync();
             }
         }
@@ -67,15 +69,16 @@ public class IdentityDataSeeder : IDataSeeder
         {
             if (await _userManager.FindByNameAsync("meysamh") == null)
             {
-                var user = new ApplicationUser
-                           {
-                               FirstName = "Meysam",
-                               LastName = "Hadeli",
-                               UserName = "meysamh",
-                               Email = "meysam@test.com",
-                               SecurityStamp = Guid.NewGuid().ToString(),
-                               PassPortNumber = String.Empty
-                           };
+                var user = ApplicationUser.Create(
+                    email: "meysam@test.com",
+                    firstName: "Meysam",
+                    lastName: "Hadeli"
+                );
+                
+                user.SecurityStamp = Guid.NewGuid().ToString();
+                user.UserName = "meysamh";
+                
+                user.SetPassportNumber(string.Empty);
 
                 var result = await _userManager.CreateAsync(user, "Admin@123456");
 
@@ -86,15 +89,16 @@ public class IdentityDataSeeder : IDataSeeder
 
             if (await _userManager.FindByNameAsync("meysamh2") == null)
             {
-                var user = new ApplicationUser
-                           {
-                               FirstName = "Meysam",
-                               LastName = "Hadeli",
-                               UserName = "meysamh2",
-                               Email = "meysam2@test.com",
-                               SecurityStamp = Guid.NewGuid().ToString(),
-                               PassPortNumber = String.Empty
-                           };
+                var user = ApplicationUser.Create(
+                    email: "meysam2@test.com",
+                    firstName: "Meysam",
+                    lastName: "Hadeli"
+                );
+                
+                user.SecurityStamp = Guid.NewGuid().ToString();
+                user.UserName = "meysamh2";
+                
+                user.SetPassportNumber(string.Empty);
 
                 var result = await _userManager.CreateAsync(user, "User@123456");
 

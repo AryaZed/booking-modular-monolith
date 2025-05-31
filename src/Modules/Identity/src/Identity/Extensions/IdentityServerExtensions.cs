@@ -1,8 +1,13 @@
+using BookingMonolith.Identity.Configurations;
 using Identity.Data;
 using Identity.Identity;
 using Identity.Identity.Models;
 using Identity.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using BuildingBlocks.Constants;
+using System.Threading.Tasks;
 
 namespace Identity.Extensions;
 
@@ -10,7 +15,7 @@ public static class IdentityServerExtensions
 {
     public static IServiceCollection AddIdentityServer(
         this IServiceCollection services,
-        IWebHostEnvironment env
+        IWebHostEnvironment env = null
     )
     {
         services.AddIdentity<ApplicationUser, ApplicationRole>(config =>
@@ -46,7 +51,7 @@ public static class IdentityServerExtensions
             .AddAspNetIdentity<ApplicationUser>()
             .AddResourceOwnerValidator<UserValidator>();
 
-        if (env.IsDevelopment())
+        if (env?.IsDevelopment() == true)
         {
             identityServerBuilder.AddDeveloperSigningCredential();
         }
@@ -71,11 +76,16 @@ public static class IdentityServerExtensions
                                             });
 
         // Register multi-tenant authorization services
-        services.AddScoped<IPermissionValidator, PermissionValidator>();
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<ITenantPermissionService, TenantPermissionService>();
+        services.AddScoped<IPermissionValidator, PermissionValidatorAdapter>();
         services.AddScoped<ITenantRoleService, TenantRoleService>();
         services.AddScoped<IUserTenantService, UserTenantService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<ICurrentTenantProvider, CurrentTenantProvider>();
+        
+        // Register email services
+        services.AddScoped<IEmailService, EmailService>();
         
         // Register OTP services
         services.AddScoped<IOtpService, OtpService>();

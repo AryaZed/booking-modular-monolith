@@ -10,6 +10,7 @@ using MediatR;
 using BuildingBlocks.Authorization;
 using BuildingBlocks.CAP;
 using Microsoft.AspNetCore.RateLimiting;
+using System;
 
 namespace Identity;
 
@@ -20,6 +21,13 @@ public static class IdentityModule
     {
         services.AddCustomDbContext<IdentityContext>(nameof(Identity), configuration);
         services.AddScoped<IDataSeeder, IdentityDataSeeder>();
+
+        // Register repositories
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
+
+        // Register services
+        services.AddScoped<UserService>();
 
         services.AddTransient<IEventMapper, EventMapper>();
         services.AddIdentityServer(env);
@@ -34,6 +42,15 @@ public static class IdentityModule
 
         // Register event dispatching services
         services.AddScoped<IEventDispatcher, EventDispatcher>();
+        
+        // Register CQRS
+        services.AddCQRS(typeof(IdentityRoot).Assembly);
+        
+        // Register Security services
+        services.AddSecurity();
+        
+        // Register Email services
+        services.AddEmail(configuration);
 
         services.AddRateLimiter(options =>
         {

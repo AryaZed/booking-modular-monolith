@@ -12,16 +12,16 @@ public class RolePermission : IAuditableEntity
     public long? CreatedBy { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
     public long? LastModifiedBy { get; private set; }
-    
+
     // Navigation property
     public virtual ApplicationRole Role { get; private set; }
-    
+
     // Factory method
     public static RolePermission Create(long roleId, string permission, long? createdBy = null)
     {
         if (string.IsNullOrWhiteSpace(permission))
             throw new DomainValidationException("Permission cannot be empty");
-            
+
         return new RolePermission
         {
             RoleId = roleId,
@@ -30,4 +30,4 @@ public class RolePermission : IAuditableEntity
             CreatedBy = createdBy
         };
     }
-} 
+}

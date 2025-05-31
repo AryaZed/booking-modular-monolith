@@ -1,7 +1,8 @@
-using BuildingBlocks.Domain.Event;
+using Microsoft.AspNetCore.Identity;
+using System.Collections.Generic;
+using System;
 using BuildingBlocks.Domain.Model;
 using Identity.Identity.Events;
-using Microsoft.AspNetCore.Identity;
 
 namespace Identity.Identity.Models;
 
@@ -40,7 +41,7 @@ public class ApplicationUser : IdentityUser<long>, IAuditableEntity, ISoftDeleta
         LastName = lastName;
         LastModifiedAt = DateTime.UtcNow;
     }
-
+    
     public void SetPassportNumber(string passportNumber)
     {
         // Add validation logic here
@@ -83,7 +84,7 @@ public class ApplicationUser : IdentityUser<long>, IAuditableEntity, ISoftDeleta
 
         _domainEvents.Add(new UserStatusChangedEvent(Id, UserStatusChangeType.Deleted, deletedBy));
     }
-
+    
     // Factory method for creating users
     public static ApplicationUser Create(string email, string firstName, string lastName, long? createdBy = null)
     {

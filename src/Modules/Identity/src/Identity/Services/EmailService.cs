@@ -9,7 +9,6 @@ namespace Identity.Services;
 public class EmailService : IEmailService
 {
     private readonly IEmailSender _emailSender;
-    private readonly EmailOptions _emailOptions;
     private readonly ILogger<EmailService> _logger;
 
     public EmailService(
@@ -18,7 +17,6 @@ public class EmailService : IEmailService
         ILogger<EmailService> logger)
     {
         _emailSender = emailSender;
-        _emailOptions = emailOptions.Value;
         _logger = logger;
     }
 
@@ -26,7 +24,7 @@ public class EmailService : IEmailService
     {
         try
         {
-            var resetLink = $"{_emailOptions.ApplicationUrl}/reset-password?token={token}&userId={userId}";
+            var resetLink = $"/reset-password?token={token}&userId={userId}";
             var subject = "Password Reset Request";
             var body = $@"
                 <h1>Password Reset</h1>
@@ -40,7 +38,7 @@ public class EmailService : IEmailService
 
             await _emailSender.SendEmailAsync(email, subject, body);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger.LogError(ex, "Failed to send password reset email to {Email}", email);
             throw;
@@ -51,7 +49,7 @@ public class EmailService : IEmailService
     {
         try
         {
-            var confirmationLink = $"{_emailOptions.ApplicationUrl}/confirm-email?token={token}&email={email}";
+            var confirmationLink = $"/confirm-email?token={token}&email={email}";
             var subject = "Confirm Your Email";
             var body = $@"
                 <h1>Email Confirmation</h1>
@@ -64,7 +62,7 @@ public class EmailService : IEmailService
 
             await _emailSender.SendEmailAsync(email, subject, body);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger.LogError(ex, "Failed to send email confirmation to {Email}", email);
             throw;
@@ -87,7 +85,7 @@ public class EmailService : IEmailService
 
             await _emailSender.SendEmailAsync(email, subject, body);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger.LogError(ex, "Failed to send 2FA code to {Email}", email);
             throw;
@@ -110,7 +108,7 @@ public class EmailService : IEmailService
 
             await _emailSender.SendEmailAsync(email, subject, body);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger.LogError(ex, "Failed to send account locked email to {Email}", email);
             throw;

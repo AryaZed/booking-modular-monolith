@@ -5,6 +5,7 @@ using BuildingBlocks.Constants;
 using BuildingBlocks.Identity;
 using BuildingBlocks.Web;
 using Identity.Data;
+using Identity.Identity.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -45,23 +46,24 @@ public class UpdateUserEndpoint : BaseController
         {
             return Unauthorized();
         }
-        
+
         // Ensure UserId in route matches command
         command = command with { UserId = userId };
-        
+
         // Find the user to update
         var userToUpdate = await _context.Users
-            .Include(u => u.UserTenantRoles)
+            .Include(u => u.TenantRoles)
+            .ThenInclude(tr => tr.Tenant)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-            
+
         if (userToUpdate == null)
         {
             return NotFound("User not found");
         }
-        
+
         // Check if current user has permission to update this user
         bool hasPermission = false;
-        
+
         // Users can update their own basic information
         if (userId == currentUserId)
         {
@@ -70,7 +72,7 @@ public class UpdateUserEndpoint : BaseController
             {
                 return BadRequest("You cannot deactivate your own account");
             }
-            
+
             hasPermission = true;
         }
         // System admins can update any user
@@ -82,43 +84,46 @@ public class UpdateUserEndpoint : BaseController
         {
             var currentUserTenantId = User.GetTenantId();
             var currentUserTenantType = User.GetTenantType();
-            
+
             if (!currentUserTenantId.HasValue)
             {
                 return Forbid("You don't have permission to update users");
             }
-            
+
             // Check if the user to update belongs to a tenant managed by current user
-            foreach (var userTenantRole in userToUpdate.UserTenantRoles)
+            foreach (var userTenantRole in userToUpdate.TenantRoles)
             {
                 // Brand admins can update users in their brand or branches under their brand
-                if (currentUserTenantType == IdentityConstant.TenantType.Brand && 
-                    User.HasPermission(PermissionsConstant.Brands.ManageBrandUsers))
+                if (currentUserTenantType == IdentityConstant.TenantType.Brand &&
+                    BuildingBlocks.Identity.ClaimsPrincipalExtensions.HasPermission(User, PermissionsConstant.Brands.ManageBrandUsers))
                 {
                     if (userTenantRole.TenantId == currentUserTenantId) // Same brand
                     {
                         hasPermission = true;
                         break;
                     }
-                    
+
                     // Check if user belongs to a branch under current user's brand
-                    if (userTenantRole.TenantType == IdentityConstant.TenantType.Branch)
+                    if (userTenantRole.Tenant != null && userTenantRole.Tenant.Type == TenantType.Branch)
                     {
-                        var branch = await _context.Branches
-                            .FirstOrDefaultAsync(b => b.Id == userTenantRole.TenantId, cancellationToken);
-                            
-                        if (branch != null && branch.BrandId == currentUserTenantId)
+                        // Since we don't have direct access to Branches DbSet, 
+                        // we would need to implement a service or repository to get this information.
+                        // For now, we'll skip this branch check
+
+                        // TODO: Implement proper branch-to-brand relationship check using ParentTenantId
+                        if (userTenantRole.Tenant.ParentTenantId == currentUserTenantId)
                         {
                             hasPermission = true;
                             break;
                         }
                     }
                 }
-                
+
                 // Branch admins can only update users in their branch
                 else if (currentUserTenantType == IdentityConstant.TenantType.Branch &&
-                        User.HasPermission(PermissionsConstant.Branches.ManageBranchUsers) &&
-                        userTenantRole.TenantType == IdentityConstant.TenantType.Branch &&
+                        BuildingBlocks.Identity.ClaimsPrincipalExtensions.HasPermission(User, PermissionsConstant.Branches.ManageBranchUsers) &&
+                        userTenantRole.Tenant != null &&
+                        userTenantRole.Tenant.Type == TenantType.Branch &&
                         userTenantRole.TenantId == currentUserTenantId)
                 {
                     hasPermission = true;
@@ -126,13 +131,13 @@ public class UpdateUserEndpoint : BaseController
                 }
             }
         }
-        
+
         if (!hasPermission)
         {
             return Forbid("You don't have permission to update this user");
         }
-        
+
         var result = await Mediator.Send(command, cancellationToken);
         return Ok(result);
     }
-} 
+}

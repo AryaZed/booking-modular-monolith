@@ -43,26 +43,26 @@ public class DeleteUserEndpoint : BaseController
         {
             return Unauthorized();
         }
-        
+
         // Prevent self-deletion
         if (userId == currentUserId)
         {
             return BadRequest("You cannot delete your own account");
         }
-        
+
         // Find the user to delete
         var userToDelete = await _context.Users
             .Include(u => u.UserTenantRoles)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-            
+
         if (userToDelete == null)
         {
             return NotFound("User not found");
         }
-        
+
         // Check if current user has permission to delete this user
         bool hasPermission = false;
-        
+
         // System admins can delete any user
         if (User.IsSystemAdmin())
         {
@@ -72,17 +72,17 @@ public class DeleteUserEndpoint : BaseController
         {
             var currentUserTenantId = User.GetTenantId();
             var currentUserTenantType = User.GetTenantType();
-            
+
             if (!currentUserTenantId.HasValue)
             {
                 return Forbid("You don't have permission to delete users");
             }
-            
+
             // Check if the user to delete belongs to a tenant managed by current user
             foreach (var userTenantRole in userToDelete.UserTenantRoles)
             {
                 // Brand admins can delete users in their brand or branches under their brand
-                if (currentUserTenantType == IdentityConstant.TenantType.Brand && 
+                if (currentUserTenantType == IdentityConstant.TenantType.Brand &&
                     User.HasPermission(PermissionsConstant.Brands.ManageBrandUsers))
                 {
                     if (userTenantRole.TenantId == currentUserTenantId) // Same brand
@@ -90,13 +90,13 @@ public class DeleteUserEndpoint : BaseController
                         hasPermission = true;
                         break;
                     }
-                    
+
                     // Check if user belongs to a branch under current user's brand
                     if (userTenantRole.TenantType == IdentityConstant.TenantType.Branch)
                     {
                         var branch = await _context.Branches
                             .FirstOrDefaultAsync(b => b.Id == userTenantRole.TenantId, cancellationToken);
-                            
+
                         if (branch != null && branch.BrandId == currentUserTenantId)
                         {
                             hasPermission = true;
@@ -104,7 +104,7 @@ public class DeleteUserEndpoint : BaseController
                         }
                     }
                 }
-                
+
                 // Branch admins can only delete users in their branch
                 else if (currentUserTenantType == IdentityConstant.TenantType.Branch &&
                         User.HasPermission(PermissionsConstant.Branches.ManageBranchUsers) &&
@@ -116,15 +116,15 @@ public class DeleteUserEndpoint : BaseController
                 }
             }
         }
-        
+
         if (!hasPermission)
         {
             return Forbid("You don't have permission to delete this user");
         }
-        
+
         // Send delete command
         await Mediator.Send(new DeleteUserCommand { UserId = userId }, cancellationToken);
-        
+
         return NoContent();
     }
-} 
+}

@@ -1,6 +1,9 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
+using BuildingBlocks.CQRS;
 using BuildingBlocks.Domain;
+using BuildingBlocks.Exception;
 using BuildingBlocks.Identity;
 using FluentValidation;
 using Identity.Data;
@@ -64,7 +67,7 @@ public class UpdateUserCommandHandler : ICommandHandler<UpdateUserCommand, Updat
 
     public UpdateUserCommandHandler(IdentityContext context)
     {
-        _context = context;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
     public async Task<UpdateUserResponse> Handle(UpdateUserCommand command, CancellationToken cancellationToken)
@@ -75,12 +78,14 @@ public class UpdateUserCommandHandler : ICommandHandler<UpdateUserCommand, Updat
             throw new NotFoundException($"User with ID {command.UserId} not found");
         }
 
-        // Update user properties
-        user.FirstName = command.FirstName;
-        user.LastName = command.LastName;
-        user.Email = command.Email;
-        user.PhoneNumber = command.PhoneNumber ?? user.PhoneNumber;
-        user.IsActive = command.IsActive;
+        // Use domain method to update user properties
+        user.UpdateInfo(
+            firstName: command.FirstName,
+            lastName: command.LastName,
+            email: command.Email,
+            phoneNumber: command.PhoneNumber,
+            isActive: command.IsActive
+        );
 
         await _context.SaveChangesAsync(cancellationToken);
 

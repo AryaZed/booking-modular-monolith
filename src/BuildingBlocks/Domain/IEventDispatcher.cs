@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using BuildingBlocks.Domain.Event;
 
 namespace BuildingBlocks.Domain;
 
