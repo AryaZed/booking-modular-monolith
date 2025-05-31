@@ -1,19 +1,15 @@
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using BuildingBlocks.Domain.Event;
 using BuildingBlocks.Domain.Model;
 using BuildingBlocks.EFCore;
 using Identity.Identity.Models;
 using Identity.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Module = Identity.Identity.Models.Module;
 
 namespace Identity.Data;
 
@@ -33,6 +29,8 @@ public sealed class IdentityContext(
     public DbSet<Tenant> Tenants { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<OneTimePassword> OneTimePasswords { get; set; }
+    public DbSet<Module> Modules { get; set; }
+    public DbSet<TenantModule> TenantModules { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

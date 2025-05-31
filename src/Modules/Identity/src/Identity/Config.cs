@@ -238,9 +238,9 @@ public static class Config
             JwtClaimTypes.Role,
             Constants.StandardScopes.Booking
         };
-        
+
         var allScopes = baseScopes.Concat(additionalScopes).ToArray();
-        
+
         return new Client
         {
             ClientId = clientId,
@@ -248,8 +248,10 @@ public static class Config
             ClientSecrets = { new Secret(secret.Sha256()) },
             AllowedScopes = allScopes,
             AccessTokenLifetime = 3600,
-            IdentityTokenLifetime = 3600,
-            AlwaysIncludeUserClaimsInIdToken = true
+            RefreshTokenUsage = TokenUsage.ReUse,
+            RefreshTokenExpiration = TokenExpiration.Absolute,
+            AbsoluteRefreshTokenLifetime = IdentityConstant.Auth.RefreshTokenExpirationDays * 86400, // Days to seconds
+            AllowOfflineAccess = true
         };
     }
 }

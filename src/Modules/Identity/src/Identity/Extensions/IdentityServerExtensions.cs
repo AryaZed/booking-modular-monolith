@@ -1,14 +1,8 @@
-using BookingMonolith.Identity.Configurations;
 using Identity.Data;
 using Identity.Identity;
 using Identity.Identity.Models;
 using Identity.Services;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using BuildingBlocks.Constants;
-using System.Threading.Tasks;
 
 namespace Identity.Extensions;
 
@@ -86,6 +80,12 @@ public static class IdentityServerExtensions
         // Register OTP services
         services.AddScoped<IOtpService, OtpService>();
         services.AddScoped<IOtpNotificationService, DefaultOtpNotificationService>();
+        
+        // Register module licensing services
+        services.AddScoped<IModuleService, ModuleService>();
+        
+        // Register tenant services
+        services.AddScoped<ITenantService, TenantService>();
 
         return services;
     }

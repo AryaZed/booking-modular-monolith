@@ -1,4 +1,3 @@
-﻿using System.Collections.Generic;
 using System.Reflection;
 using BuildingBlocks.Caching;
 using BuildingBlocks.Domain;
@@ -8,17 +7,9 @@ using FluentValidation;
 using Identity.Data;
 using Identity.Extensions;
 using MediatR;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using BuildingBlocks.Authorization;
 using BuildingBlocks.CAP;
-using Identity.Data.Seed;
-using Identity.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
-using System;
 
 namespace Identity;
 
@@ -36,11 +27,11 @@ public static class IdentityModule
         services.AddValidatorsFromAssembly(typeof(IdentityRoot).Assembly);
         services.AddCustomMapster(typeof(IdentityRoot).Assembly);
 
-        services.AddCachingRequest(new List<Assembly> {typeof(IdentityRoot).Assembly});
+        services.AddCachingRequest(new List<Assembly> { typeof(IdentityRoot).Assembly });
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(EfTxIdentityBehavior<,>));
 
         services.AddPermissionAuthorization();
-        
+
         // Register event dispatching services
         services.AddScoped<IEventDispatcher, EventDispatcher>();
 
@@ -54,6 +45,13 @@ public static class IdentityModule
                 opt.QueueLimit = 2;
             });
         });
+
+        // Add module authorization
+        services.AddModuleAuthorization();
+
+        // Register domain event handlers
+        services.AddScoped<IDomainEventHandler<Identity.Events.BranchReassignedEvent>,
+            Identity.EventHandlers.BranchReassignedEventHandler>();
 
         return services;
     }

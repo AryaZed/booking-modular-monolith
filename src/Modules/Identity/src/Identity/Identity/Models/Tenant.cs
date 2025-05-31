@@ -61,6 +61,13 @@ public class Tenant : IAuditableEntity, ISoftDeletableEntity
         LastModifiedBy = modifiedBy;
     }
 
+    public void UpdateParent(long? newParentId = null, long? modifiedBy = null)
+    {
+        ParentTenantId = newParentId;
+        LastModifiedAt = DateTime.UtcNow;
+        LastModifiedBy = modifiedBy;
+    }
+
     public void SoftDelete(long deletedBy)
     {
         IsDeleted = true;

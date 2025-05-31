@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Identity.Services;
 
@@ -26,19 +27,22 @@ public class TokenService : ITokenService
     private readonly IdentityContext _context;
     private readonly IPermissionValidator _permissionValidator;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IServiceProvider _serviceProvider;
 
     public TokenService(
         IOptions<IdentityServerOptions> options,
         IKeyMaterialService keyMaterialService,
         IdentityContext context,
         IPermissionValidator permissionValidator,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IServiceProvider serviceProvider)
     {
         _options = options;
         _keyMaterialService = keyMaterialService;
         _context = context;
         _permissionValidator = permissionValidator;
         _httpContextAccessor = httpContextAccessor;
+        _serviceProvider = serviceProvider;
     }
 
     public async Task<TokenResponse> GenerateTokenAsync(
@@ -217,6 +221,20 @@ public class TokenService : ITokenService
         foreach (var permission in permissions)
         {
             claims.Add(new Claim(IdentityConstant.ClaimTypes.Permission, permission));
+        }
+        
+        // Add module access claims for the tenant
+        if (tenantId.HasValue)
+        {
+            // Get accessible modules for the tenant
+            var moduleService = _serviceProvider.GetRequiredService<IModuleService>();
+            var moduleCodes = await moduleService.GetTenantModuleCodesAsync(tenantId.Value);
+            
+            // Add module access claims
+            foreach (var moduleCode in moduleCodes)
+            {
+                claims.Add(new Claim("module", moduleCode));
+            }
         }
         
         var signingCredentials = GetSigningCredentials();
